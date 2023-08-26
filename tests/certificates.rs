@@ -49,7 +49,7 @@ fn trust_on_first_use() {
 
     if Path::new(DEFAULT_KNOWN_HOSTS_FILE).exists() {
         fs::remove_file(DEFAULT_KNOWN_HOSTS_FILE)
-            .expect("Failed to remove default known hosts file");
+            .expect("failed to remove default known hosts file");
     }
 
     let mut client_app = App::new();
@@ -125,7 +125,7 @@ fn trust_on_first_use() {
         let cert_info = client_test_data
             .last_trusted_cert_info
             .as_mut()
-            .expect("A certificate trust update should have happened");
+            .expect("certificate trust update should have happened");
         assert_eq!(
             cert_info.fingerprint.to_base64(),
             TEST_CERT_FINGERPRINT_B64.to_string(),
@@ -151,7 +151,7 @@ fn trust_on_first_use() {
         // Client reconnects with the updated cert store
         client
             .close_all_connections()
-            .expect("Failed to close connections on the client");
+            .expect("failed to close connections on the client");
 
         client
             .open_connection(
@@ -190,7 +190,7 @@ fn trust_on_first_use() {
             .world
             .resource_mut::<Client>()
             .close_all_connections()
-            .expect("Failed to close connections on the client");
+            .expect("failed to close connections on the client");
     }
 
     // Server reboots, and generates a new self-signed certificate
@@ -272,7 +272,7 @@ fn trust_on_first_use() {
             interaction_cert_info
                 .known_fingerprint
                 .as_mut()
-                .expect("There should be a known fingerprint in the store")
+                .expect("there should be a known fingerprint in the store")
                 .to_base64(),
             TEST_CERT_FINGERPRINT_B64.to_string(),
             "The previously known fingeprint for this server should be the test fingerprint"
@@ -308,5 +308,5 @@ fn trust_on_first_use() {
     }
 
     // Leave the workspace clean
-    fs::remove_file(DEFAULT_KNOWN_HOSTS_FILE).expect("Failed to remove default known hosts file");
+    fs::remove_file(DEFAULT_KNOWN_HOSTS_FILE).expect("failed to remove default known hosts file");
 }

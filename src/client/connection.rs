@@ -493,15 +493,15 @@ pub(crate) async fn connection_task(
     );
 
     let client_cfg = configure_client(cert_mode, to_sync_client_send.clone())
-        .expect("Failed to configure client");
+        .expect("failed to configure client");
 
     let mut endpoint =
-        Endpoint::client(config.local_bind_addr).expect("Failed to create client endpoint");
+        Endpoint::client(config.local_bind_addr).expect("failed to create client endpoint");
     endpoint.set_default_client_config(client_cfg);
 
     let connection = endpoint
         .connect(config.server_addr, &config.server_hostname)
-        .expect("Failed to connect: configuration error")
+        .expect("failed to connect: configuration error")
         .await;
     match connection {
         Err(e) => error!(
@@ -518,7 +518,7 @@ pub(crate) async fn connection_task(
             to_sync_client_send
                 .send(ClientAsyncMessage::Connected(connection.clone()))
                 .await
-                .expect("Failed to signal connection to sync client");
+                .expect("failed to signal connection to sync client");
 
             // Spawn a task to listen for the underlying connection being closed
             {
@@ -532,7 +532,7 @@ pub(crate) async fn connection_task(
                         to_sync_client
                             .send(ClientAsyncMessage::ConnectionClosed(conn_err))
                             .await
-                            .expect("Failed to signal connection lost to sync client");
+                            .expect("failed to signal connection lost to sync client");
                     }
                 })
             };

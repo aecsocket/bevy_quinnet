@@ -61,8 +61,8 @@ fn connection_with_two_apps() {
             .resource_mut::<Server>()
             .endpoint_mut()
             .receive_message_from::<SharedMessage>(client_id)
-            .expect("Failed to receive client message")
-            .expect("There should be a client message");
+            .expect("failed to receive client message")
+            .expect("there should be a client message");
         assert_eq!(client_message, sent_client_message);
     }
 
@@ -84,8 +84,8 @@ fn connection_with_two_apps() {
         let server_message = client
             .connection_mut()
             .receive_message::<SharedMessage>()
-            .expect("Failed to receive server message")
-            .expect("There should be a server message");
+            .expect("failed to receive server message")
+            .expect("there should be a server message");
         assert_eq!(server_message, sent_server_message);
     }
 }

@@ -778,7 +778,7 @@ async fn endpoint_task(
     mut endpoint_close_recv: broadcast::Receiver<()>,
 ) {
     let endpoint = QuinnEndpoint::server(endpoint_config, endpoint_adr)
-        .expect("Failed to create the endpoint");
+        .expect("failed to create the endpoint");
     // Handle incoming connections/clients.
     tokio::select! {
         _ = endpoint_close_recv.recv() => {
@@ -831,7 +831,7 @@ async fn client_connection_task(
             to_channels_send,
         }))
         .await
-        .expect("Failed to signal connection to sync client");
+        .expect("failed to signal connection to sync client");
 
     // Wait for the sync server response before spawning connection tasks.
     match from_sync_server_recv.recv().await {
@@ -856,7 +856,7 @@ async fn client_connection_task(
                                 client_id, conn_err,
                             ))
                             .await
-                            .expect("Failed to signal connection lost to sync server");
+                            .expect("failed to signal connection lost to sync server");
                     }
                 });
             };

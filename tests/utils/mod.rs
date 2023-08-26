@@ -137,7 +137,7 @@ pub fn handle_client_events(
             CertVerificationStatus::UntrustedCertificate => {
                 cert_interaction
                     .apply_cert_verifier_action(CertVerifierAction::AbortConnection)
-                    .expect("Failed to apply cert verification action");
+                    .expect("failed to apply cert verification action");
             }
             CertVerificationStatus::TrustedCertificate => todo!(),
         }
@@ -195,7 +195,7 @@ pub fn wait_for_client_connected(client_app: &mut App, server_app: &mut App) -> 
         .world
         .resource::<ServerTestData>()
         .last_connected_client_id
-        .expect("A client should have connected")
+        .expect("a client should have connected")
 }
 
 pub fn get_default_client_channel(app: &App) -> ChannelId {
@@ -203,7 +203,7 @@ pub fn get_default_client_channel(app: &App) -> ChannelId {
     client
         .connection()
         .get_default_channel()
-        .expect("Expected some default channel")
+        .expect("expected some default channel")
 }
 
 pub fn get_default_server_channel(app: &App) -> ChannelId {
@@ -211,7 +211,7 @@ pub fn get_default_server_channel(app: &App) -> ChannelId {
     server
         .endpoint()
         .get_default_channel()
-        .expect("Expected some default channel")
+        .expect("expected some default channel")
 }
 
 pub fn close_client_channel(channel_id: ChannelId, app: &mut App) {
@@ -219,7 +219,7 @@ pub fn close_client_channel(channel_id: ChannelId, app: &mut App) {
     client
         .connection_mut()
         .close_channel(channel_id)
-        .expect("Failed to close channel")
+        .expect("failed to close channel")
 }
 
 pub fn close_server_channel(channel_id: ChannelId, app: &mut App) {
@@ -227,7 +227,7 @@ pub fn close_server_channel(channel_id: ChannelId, app: &mut App) {
     server
         .endpoint_mut()
         .close_channel(channel_id)
-        .expect("Failed to close channel")
+        .expect("failed to close channel")
 }
 
 pub fn open_client_channel(channel_type: ChannelType, app: &mut App) -> ChannelId {
@@ -235,7 +235,7 @@ pub fn open_client_channel(channel_type: ChannelType, app: &mut App) -> ChannelI
     client
         .connection_mut()
         .open_channel(channel_type)
-        .expect("Failed to open channel")
+        .expect("failed to open channel")
 }
 
 pub fn open_server_channel(channel_type: ChannelType, app: &mut App) -> ChannelId {
@@ -243,7 +243,7 @@ pub fn open_server_channel(channel_type: ChannelType, app: &mut App) -> ChannelI
     server
         .endpoint_mut()
         .open_channel(channel_type)
-        .expect("Failed to open channel")
+        .expect("failed to open channel")
 }
 
 pub fn wait_for_client_message(client_id: ClientId, server_app: &mut App) -> SharedMessage {
@@ -257,7 +257,7 @@ pub fn wait_for_client_message(client_id: ClientId, server_app: &mut App) -> Sha
         {
             Ok(Some(msg)) => return msg,
             Ok(None) => (),
-            Err(_) => panic!("Deserialization should be correct"),
+            Err(_) => panic!("deserialization should be correct"),
         }
     }
 }
@@ -270,7 +270,7 @@ pub fn wait_for_server_message(client_app: &mut App) -> SharedMessage {
         match client.connection_mut().receive_message::<SharedMessage>() {
             Ok(Some(msg)) => return msg,
             Ok(None) => (),
-            Err(_) => panic!("Deserialization should be correct"),
+            Err(_) => panic!("deserialization should be correct"),
         }
     }
 }

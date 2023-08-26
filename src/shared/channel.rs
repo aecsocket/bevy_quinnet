@@ -212,7 +212,7 @@ pub(crate) async fn ordered_reliable_channel_task(
                     from_channels_send.send(
                         ChannelAsyncMessage::LostConnection)
                         .await
-                        .expect("Failed to signal connection lost on Ordered Reliable Channel");
+                        .expect("failed to signal connection lost on Ordered Reliable Channel");
                 }
             }
         } => {
@@ -268,7 +268,7 @@ pub(crate) async fn unordered_reliable_channel_task(
                         from_channels_send_clone.send(
                             ChannelAsyncMessage::LostConnection)
                             .await
-                            .expect("Failed to signal connection lost on Unordered Reliable Channel");
+                            .expect("failed to signal connection lost on Unordered Reliable Channel");
                     }
                     if let Err(err) = frame_sender.into_inner().finish().await {
                         error!("Failed to shutdown Unordered Reliable Channel stream gracefully: {}", err);
@@ -329,7 +329,7 @@ pub(crate) async fn unreliable_channel_task(
                             from_channels_send.send(
                                 ChannelAsyncMessage::LostConnection)
                                 .await
-                                .expect("Failed to signal connection lost from channels");
+                                .expect("failed to signal connection lost from channels");
                         },
                     }
 
@@ -355,7 +355,7 @@ async fn new_uni_frame_sender(
     let uni_sender = connection
         .open_uni()
         .await
-        .expect("Failed to open send stream");
+        .expect("failed to open send stream");
     FramedWrite::new(uni_sender, LengthDelimitedCodec::new())
 }
 
