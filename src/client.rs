@@ -198,8 +198,10 @@ impl Client {
             )
             .await
             {
-                // we had an error sending the error... uhhh... let's just ignore it
-                let _ = error_send.send(e);
+                error!("Connection {} had a setup error: {}", connection_id, e);
+                if let Err(e) = error_send.send(e).await {
+                    error!("Could not send previous setup error for connection: {}", e);
+                }
             }
         });
 
