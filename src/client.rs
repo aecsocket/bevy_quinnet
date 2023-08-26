@@ -31,7 +31,7 @@ use self::{
     },
     connection::{
         connection_task, Connection, ConnectionConfiguration, ConnectionEvent, ConnectionId,
-        ConnectionLostEvent, ConnectionState,
+        ConnectionLostEvent, ConnectionState, ConnectionErrorEvent,
     },
 };
 
@@ -157,6 +157,8 @@ impl Client {
             mpsc::channel::<ChannelAsyncMessage>(DEFAULT_INTERNAL_MESSAGE_CHANNEL_SIZE);
         let (to_channels_send, to_channels_recv) =
             mpsc::channel::<ChannelSyncMessage>(DEFAULT_INTERNAL_MESSAGE_CHANNEL_SIZE);
+        let (error_send, error_recv) =
+            mpsc::channel::<QuinnetError>(DEFAULT_INTERNAL_MESSAGE_CHANNEL_SIZE);
 
         // Create a close channel for this connection
         let (close_send, close_recv) = broadcast::channel(DEFAULT_KILL_MESSAGE_QUEUE_SIZE);
@@ -167,6 +169,7 @@ impl Client {
             from_async_client_recv,
             to_channels_send,
             from_channels_recv,
+            error_recv,
         );
         // Create default channels
         let ordered_reliable_id = connection.open_channel(ChannelType::OrderedReliable)?;
@@ -182,7 +185,7 @@ impl Client {
 
         // Async connection
         self.runtime.spawn(async move {
-            connection_task(
+            if let Err(e) = connection_task(
                 connection_id,
                 config,
                 cert_mode,
@@ -191,8 +194,13 @@ impl Client {
                 from_channels_send,
                 close_recv,
                 bytes_from_server_send,
+                error_send.clone(),
             )
             .await
+            {
+                // we had an error sending the error... uhhh... let's just ignore it
+                let _ = error_send.send(e);
+            }
         });
 
         Ok((connection_id, ordered_reliable_id))
@@ -243,12 +251,13 @@ impl Client {
 fn update_sync_client(
     mut connection_events: EventWriter<ConnectionEvent>,
     mut connection_lost_events: EventWriter<ConnectionLostEvent>,
+    mut connection_error_events: EventWriter<ConnectionErrorEvent>,
     mut certificate_interaction_events: EventWriter<CertInteractionEvent>,
     mut cert_trust_update_events: EventWriter<CertTrustUpdateEvent>,
     mut cert_connection_abort_events: EventWriter<CertConnectionAbortEvent>,
     mut client: ResMut<Client>,
 ) {
-    for (connection_id, mut connection) in &mut client.connections {
+    for (connection_id, connection) in &mut client.connections {
         while let Ok(message) = connection.from_async_client_recv.try_recv() {
             match message {
                 ClientAsyncMessage::Connected(internal_connection) => {
@@ -299,6 +308,12 @@ fn update_sync_client(
                     }
                 },
             }
+        }
+        while let Ok(error) = connection.error_recv.try_recv() {
+            connection_error_events.send(ConnectionErrorEvent {
+                id: *connection_id,
+                error,
+            });
         }
     }
 }

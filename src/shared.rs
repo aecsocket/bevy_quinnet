@@ -2,6 +2,7 @@ use std::{fmt, io, net::AddrParseError, sync::PoisonError};
 
 use crate::client::connection::ConnectionId;
 use bevy::prelude::{Deref, DerefMut, Resource};
+use quinn_proto::{ConnectError, ConnectionError};
 use rcgen::RcgenError;
 use tokio::runtime::Runtime;
 
@@ -62,6 +63,19 @@ pub enum QuinnetError {
     IoError(#[from] io::Error),
     #[error("rustls protocol error")]
     RustlsError(#[from] rustls::Error),
+
+    #[error("failed to configure client")]
+    ClientConfigure,
+    #[error("failed to create endpoint")]
+    EndpointCreation(#[source] io::Error),
+    #[error("failed to configure connection")]
+    ConnectConfigure(#[source] ConnectError),
+    #[error("failed to connect")]
+    Connect(#[source] ConnectionError),
+    #[error("failed to signal connection to sync client")]
+    SignalConnectionToClient,
+    #[error("failed to signal connection lost to sync client")]
+    SignalConnectionLostToClient,
 }
 
 impl<T> From<PoisonError<T>> for QuinnetError {

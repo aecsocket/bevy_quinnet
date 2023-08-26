@@ -49,6 +49,13 @@ pub struct ConnectionLostEvent {
     pub id: ConnectionId,
 }
 
+/// ConnectionError event raised when the client reports an error during the connection lifecycle. Raised in the CoreStage::PreUpdate stage.
+#[derive(Event)]
+pub struct ConnectionErrorEvent {
+    pub id: ConnectionId,
+    pub error: QuinnetError,
+}
+
 /// Configuration of a client connection, used when connecting to a server
 #[derive(Debug, Deserialize, Clone)]
 pub struct ConnectionConfiguration {
@@ -214,6 +221,7 @@ pub struct Connection {
     pub(crate) from_async_client_recv: mpsc::Receiver<ClientAsyncMessage>,
     pub(crate) to_channels_send: mpsc::Sender<ChannelSyncMessage>,
     pub(crate) from_channels_recv: mpsc::Receiver<ChannelAsyncMessage>,
+    pub(crate) error_recv: mpsc::Receiver<QuinnetError>,
 }
 
 impl Connection {
@@ -223,6 +231,7 @@ impl Connection {
         from_async_client_recv: mpsc::Receiver<ClientAsyncMessage>,
         to_channels_send: mpsc::Sender<ChannelSyncMessage>,
         from_channels_recv: mpsc::Receiver<ChannelAsyncMessage>,
+        error_recv: mpsc::Receiver<QuinnetError>,
     ) -> Self {
         Self {
             state: ConnectionState::Connecting,
@@ -234,6 +243,7 @@ impl Connection {
             from_async_client_recv,
             to_channels_send,
             from_channels_recv,
+            error_recv,
         }
     }
 
@@ -486,95 +496,94 @@ pub(crate) async fn connection_task(
     from_channels_send: mpsc::Sender<ChannelAsyncMessage>,
     close_recv: broadcast::Receiver<()>,
     bytes_from_server_send: mpsc::Sender<Bytes>,
-) {
+    error_send: mpsc::Sender<QuinnetError>,
+) -> Result<(), QuinnetError> {
     info!(
         "Connection {} trying to connect to server on: {} ...",
         connection_id, config.server_addr
     );
 
     let client_cfg = configure_client(cert_mode, to_sync_client_send.clone())
-        .expect("failed to configure client");
+        .map_err(|_| QuinnetError::ClientConfigure)?;
 
     let mut endpoint =
-        Endpoint::client(config.local_bind_addr).expect("failed to create client endpoint");
+        Endpoint::client(config.local_bind_addr).map_err(|e| QuinnetError::EndpointCreation(e))?;
     endpoint.set_default_client_config(client_cfg);
 
     let connection = endpoint
         .connect(config.server_addr, &config.server_hostname)
-        .expect("failed to connect: configuration error")
-        .await;
-    match connection {
-        Err(e) => error!(
-            "Connection {}, error while connecting: {}",
-            connection_id, e
-        ),
-        Ok(connection) => {
-            info!(
-                "Connection {} connected to {}",
+        .map_err(|e| QuinnetError::ConnectConfigure(e))?
+        .await
+        .map_err(|e| QuinnetError::Connect(e))?;
+
+    info!(
+        "Connection {} connected to {}",
+        connection_id,
+        connection.remote_address()
+    );
+
+    to_sync_client_send
+        .send(ClientAsyncMessage::Connected(connection.clone()))
+        .await
+        .map_err(|_| QuinnetError::SignalConnectionToClient)?;
+
+    // Spawn a task to listen for the underlying connection being closed
+    {
+        let conn = connection.clone();
+        let to_sync_client = to_sync_client_send.clone();
+        tokio::spawn(async move {
+            let conn_err = conn.closed().await;
+            info!("Connection {} disconnected: {}", connection_id, conn_err);
+            // If we requested the connection to close, channel may have been closed already.
+            if !to_sync_client.is_closed() {
+                if let Err(_) = to_sync_client
+                    .send(ClientAsyncMessage::ConnectionClosed(conn_err))
+                    .await
+                {
+                    error_send.send(QuinnetError::SignalConnectionLostToClient);
+                }
+            }
+        })
+    };
+
+    // Spawn a task to listen for streams opened by the server
+    {
+        let close_recv = close_recv.resubscribe();
+        let connection_handle = connection.clone();
+        let bytes_incoming_send = bytes_from_server_send.clone();
+        tokio::spawn(async move {
+            reliable_receiver_task(
                 connection_id,
-                connection.remote_address()
-            );
-
-            to_sync_client_send
-                .send(ClientAsyncMessage::Connected(connection.clone()))
-                .await
-                .expect("failed to signal connection to sync client");
-
-            // Spawn a task to listen for the underlying connection being closed
-            {
-                let conn = connection.clone();
-                let to_sync_client = to_sync_client_send.clone();
-                tokio::spawn(async move {
-                    let conn_err = conn.closed().await;
-                    info!("Connection {} disconnected: {}", connection_id, conn_err);
-                    // If we requested the connection to close, channel may have been closed already.
-                    if !to_sync_client.is_closed() {
-                        to_sync_client
-                            .send(ClientAsyncMessage::ConnectionClosed(conn_err))
-                            .await
-                            .expect("failed to signal connection lost to sync client");
-                    }
-                })
-            };
-
-            // Spawn a task to listen for streams opened by the server
-            {
-                let close_recv = close_recv.resubscribe();
-                let connection_handle = connection.clone();
-                let bytes_incoming_send = bytes_from_server_send.clone();
-                tokio::spawn(async move {
-                    reliable_receiver_task(
-                        connection_id,
-                        connection_handle,
-                        close_recv,
-                        bytes_incoming_send,
-                    )
-                    .await
-                });
-            }
-
-            // Spawn a task to listen for datagrams sent by the server
-            {
-                let close_recv = close_recv.resubscribe();
-                let connection_handle = connection.clone();
-                let bytes_incoming_send = bytes_from_server_send.clone();
-                tokio::spawn(async move {
-                    unreliable_receiver_task(
-                        connection_id,
-                        connection_handle,
-                        close_recv,
-                        bytes_incoming_send,
-                    )
-                    .await
-                });
-            }
-
-            // Spawn a task to handle send channels for this connection
-            tokio::spawn(async move {
-                channels_task(connection, close_recv, to_channels_recv, from_channels_send).await
-            });
-        }
+                connection_handle,
+                close_recv,
+                bytes_incoming_send,
+            )
+            .await
+        });
     }
+
+    // Spawn a task to listen for datagrams sent by the server
+    {
+        let close_recv = close_recv.resubscribe();
+        let connection_handle = connection.clone();
+        let bytes_incoming_send = bytes_from_server_send.clone();
+        tokio::spawn(async move {
+            unreliable_receiver_task(
+                connection_id,
+                connection_handle,
+                close_recv,
+                bytes_incoming_send,
+            )
+            .await
+        });
+    }
+
+    // Spawn a task to handle send channels for this connection
+    tokio::spawn(async move {
+        channels_task(connection, close_recv, to_channels_recv, from_channels_send).await
+    });
+
+    Ok(())
 }
 
 fn configure_client(
