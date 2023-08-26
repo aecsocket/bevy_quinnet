@@ -31,7 +31,7 @@ use self::{
     },
     connection::{
         connection_task, Connection, ConnectionConfiguration, ConnectionEvent, ConnectionId,
-        ConnectionLostEvent, ConnectionState, ConnectionErrorEvent,
+        ConnectionLostEvent, ConnectionState,
     },
 };
 
@@ -198,9 +198,8 @@ impl Client {
             )
             .await
             {
-                error!("Connection {} had a setup error: {}", connection_id, e);
                 if let Err(e) = error_send.send(e).await {
-                    error!("Could not send previous setup error for connection: {}", e);
+                    error!("Could not send setup error for connection: {}", e);
                 }
             }
         });
@@ -253,7 +252,6 @@ impl Client {
 fn update_sync_client(
     mut connection_events: EventWriter<ConnectionEvent>,
     mut connection_lost_events: EventWriter<ConnectionLostEvent>,
-    mut connection_error_events: EventWriter<ConnectionErrorEvent>,
     mut certificate_interaction_events: EventWriter<CertInteractionEvent>,
     mut cert_trust_update_events: EventWriter<CertTrustUpdateEvent>,
     mut cert_connection_abort_events: EventWriter<CertConnectionAbortEvent>,
@@ -270,7 +268,10 @@ fn update_sync_client(
                     ConnectionState::Disconnected => (),
                     _ => {
                         connection.try_disconnect();
-                        connection_lost_events.send(ConnectionLostEvent { id: *connection_id });
+                        connection_lost_events.send(ConnectionLostEvent {
+                            id: *connection_id,
+                            error: None,
+                        });
                     }
                 },
                 ClientAsyncMessage::CertificateInteractionRequest {
@@ -306,16 +307,23 @@ fn update_sync_client(
                     ConnectionState::Disconnected => (),
                     _ => {
                         connection.try_disconnect();
-                        connection_lost_events.send(ConnectionLostEvent { id: *connection_id });
+                        connection_lost_events.send(ConnectionLostEvent {
+                            id: *connection_id,
+                            error: None,
+                        });
                     }
                 },
             }
         }
         while let Ok(error) = connection.error_recv.try_recv() {
-            connection_error_events.send(ConnectionErrorEvent {
+            connection_lost_events.send(ConnectionLostEvent {
                 id: *connection_id,
-                error,
+                error: Some(error),
             });
+            match connection.state {
+                ConnectionState::Disconnected => (),
+                _ => connection.try_disconnect(),
+            }
         }
     }
 }
@@ -339,7 +347,6 @@ impl Plugin for QuinnetClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ConnectionEvent>()
             .add_event::<ConnectionLostEvent>()
-            .add_event::<ConnectionErrorEvent>()
             .add_event::<CertInteractionEvent>()
             .add_event::<CertTrustUpdateEvent>()
             .add_event::<CertConnectionAbortEvent>();

@@ -50,17 +50,13 @@ impl std::fmt::Display for ConnectionId {
 pub struct ConnectionEvent {
     pub id: ConnectionId,
 }
-/// ConnectionLost event raised when the client is considered disconnected from the server. Raised in the CoreStage::PreUpdate stage.
+/// ConnectionLost event raised when the client is considered disconnected from the server. This
+/// may have been due to a connection error.
+/// Raised in the CoreStage::PreUpdate stage.
 #[derive(Event)]
 pub struct ConnectionLostEvent {
     pub id: ConnectionId,
-}
-
-/// ConnectionError event raised when the client reports an error during the connection lifecycle. Raised in the CoreStage::PreUpdate stage.
-#[derive(Event)]
-pub struct ConnectionErrorEvent {
-    pub id: ConnectionId,
-    pub error: QuinnetError,
+    pub error: Option<QuinnetError>,
 }
 
 /// Configuration of a client connection, used when connecting to a server
@@ -547,7 +543,9 @@ pub(crate) async fn connection_task(
                     .send(ClientAsyncMessage::ConnectionClosed(conn_err))
                     .await
                 {
-                    error_send.send(QuinnetError::SignalConnectionLostToClient);
+                    if let Err(e) = error_send.send(QuinnetError::SignalConnectionLostToClient).await {
+                        error!("Could not send signal connection lost to client error: {}", e);
+                    }
                 }
             }
         })
