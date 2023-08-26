@@ -337,6 +337,7 @@ impl Plugin for QuinnetClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ConnectionEvent>()
             .add_event::<ConnectionLostEvent>()
+            .add_event::<ConnectionErrorEvent>()
             .add_event::<CertInteractionEvent>()
             .add_event::<CertTrustUpdateEvent>()
             .add_event::<CertConnectionAbortEvent>();
