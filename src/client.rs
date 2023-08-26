@@ -85,7 +85,7 @@ impl Client {
         Self {
             connections: HashMap::new(),
             runtime: runtime_handle,
-            last_gen_id: 0,
+            last_gen_id: ConnectionId(0),
             default_connection_id: None,
         }
     }
@@ -176,7 +176,7 @@ impl Client {
         connection.open_channel(ChannelType::UnorderedReliable)?;
         connection.open_channel(ChannelType::Unreliable)?;
 
-        self.last_gen_id += 1;
+        *self.last_gen_id += 1;
         let connection_id = self.last_gen_id;
         self.connections.insert(connection_id, connection);
         if self.default_connection_id.is_none() {

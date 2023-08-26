@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use bevy::prelude::{error, info, Event};
+use bevy::prelude::{error, info, Event, Deref, DerefMut};
 use bytes::Bytes;
 use quinn::{ClientConfig, Endpoint};
 use quinn_proto::ConnectionStats;
@@ -36,7 +36,14 @@ use super::{
     ClientAsyncMessage,
 };
 
-pub type ConnectionId = u64;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deref, DerefMut)]
+pub struct ConnectionId(pub u64);
+
+impl std::fmt::Display for ConnectionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// Connection event raised when the client just connected to the server. Raised in the CoreStage::PreUpdate stage.
 #[derive(Event)]
