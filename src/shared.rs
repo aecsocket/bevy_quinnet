@@ -12,7 +12,14 @@ pub const DEFAULT_MESSAGE_QUEUE_SIZE: usize = 150;
 pub const DEFAULT_KILL_MESSAGE_QUEUE_SIZE: usize = 10;
 pub const DEFAULT_KEEP_ALIVE_INTERVAL_S: u64 = 4;
 
-pub type ClientId = u64;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deref, DerefMut)]
+pub struct ClientId(pub u64);
+
+impl std::fmt::Display for ClientId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 pub mod channel;
 

@@ -635,7 +635,7 @@ impl Endpoint {
             };
         }
 
-        self.last_gen_client_id += 1;
+        *self.last_gen_client_id += 1;
         let client_id = self.last_gen_client_id;
 
         match connection
@@ -736,7 +736,7 @@ impl Server {
 
         let mut endpoint = Endpoint {
             clients: HashMap::new(),
-            last_gen_client_id: 0,
+            last_gen_client_id: ClientId(0),
             channels: HashSet::new(),
             default_channel: None,
             last_gen_id: 0,
