@@ -6,7 +6,7 @@ use std::{
 
 use bevy::prelude::{error, info, Deref, DerefMut, Event};
 use bytes::Bytes;
-use quinn::{ClientConfig, Endpoint, Connecting};
+use quinn::{ClientConfig, Endpoint};
 use quinn_proto::{ConnectionStats, TransportConfig};
 
 use serde::{Deserialize, Serialize};
@@ -524,14 +524,6 @@ pub(crate) fn setup_connection_task(
     let client_cfg = configure_client(cert_mode, to_sync_client_send.clone(), transport)
         .map_err(|e| QuinnetError::ClientConfigure(Box::new(e)))?;
 
-    let mut endpoint =
-        Endpoint::client(config.local_bind_addr).map_err(|e| QuinnetError::EndpointCreation(e))?;
-    endpoint.set_default_client_config(client_cfg);
-
-    let connection = endpoint
-        .connect(config.server_addr, &config.server_hostname)
-        .map_err(|e| QuinnetError::ConnectConfigure(e))?;
-
     runtime.spawn(async move {
         if let Err(e) = connection_task(
             connection_id,
@@ -541,10 +533,11 @@ pub(crate) fn setup_connection_task(
             close_recv,
             bytes_from_server_send,
             error_send.clone(),
-            connection,
+            config,
+            client_cfg,
         ).await {
             if let Err(e) = error_send.send(e).await {
-                error!("Could not send connection error: {}", e);
+                error!("Could not send connection error `{}`: {}", e.0, e);
             }
         }
     });
@@ -560,8 +553,18 @@ async fn connection_task(
     close_recv: broadcast::Receiver<()>,
     bytes_from_server_send: mpsc::Sender<Bytes>,
     error_send: mpsc::Sender<QuinnetError>,
-    connection: Connecting,
+    config: ConnectionConfiguration,
+    client_cfg: ClientConfig,
 ) -> Result<(), QuinnetError> {
+    // must be in the async fn because `::client` uses the tokio `default_runtime`
+    let mut endpoint =
+        Endpoint::client(config.local_bind_addr).map_err(|e| QuinnetError::EndpointCreation(e))?;
+    endpoint.set_default_client_config(client_cfg);
+
+    let connection = endpoint
+        .connect(config.server_addr, &config.server_hostname)
+        .map_err(|e| QuinnetError::ConnectConfigure(e))?;
+
     let connection = connection.await.map_err(|e| QuinnetError::Connect(e))?;
 
     info!(
