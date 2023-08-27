@@ -3,7 +3,7 @@ use std::{
         hash_map::{Iter, IterMut},
         HashMap,
     },
-    sync::{Mutex, Arc},
+    sync::{Arc, Mutex},
 };
 
 use bevy::prelude::*;
@@ -20,8 +20,8 @@ use tokio::{
 
 use crate::shared::{
     channel::{ChannelAsyncMessage, ChannelId, ChannelSyncMessage, ChannelType},
-    AsyncRuntime, InternalConnectionRef, QuinnetError, DEFAULT_KILL_MESSAGE_QUEUE_SIZE,
-    DEFAULT_MESSAGE_QUEUE_SIZE, TransportConfig,
+    AsyncRuntime, InternalConnectionRef, QuinnetError, TransportConfig,
+    DEFAULT_KILL_MESSAGE_QUEUE_SIZE, DEFAULT_MESSAGE_QUEUE_SIZE,
 };
 
 use self::{

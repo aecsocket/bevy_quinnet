@@ -367,11 +367,13 @@ fn parse_known_host_line(
     let mut parts = line.split_whitespace();
 
     let adr_str = parts.next().ok_or(QuinnetError::InvalidHostFile)?;
-    let serv_name = ServerName(RustlsServerName::try_from(adr_str).map_err(|e| QuinnetError::InvalidDnsName(e))?);
+    let serv_name = ServerName(
+        RustlsServerName::try_from(adr_str).map_err(|e| QuinnetError::InvalidDnsName(e))?,
+    );
 
     let fingerprint_b64 = parts.next().ok_or(QuinnetError::InvalidHostFile)?;
-    let fingerprint_bytes = base64::decode(&fingerprint_b64)    
-        .map_err(|e| QuinnetError::FingerprintDecode(e))?;
+    let fingerprint_bytes =
+        base64::decode(&fingerprint_b64).map_err(|e| QuinnetError::FingerprintDecode(e))?;
 
     match fingerprint_bytes.try_into() {
         Ok(buf) => Ok((serv_name, CertificateFingerprint::new(buf))),
@@ -383,8 +385,7 @@ fn load_known_hosts_from_file(
     file_path: String,
 ) -> Result<(CertStore, Option<String>), QuinnetError> {
     let mut store = HashMap::new();
-    let file = File::open(&file_path)
-        .map_err(|e| QuinnetError::LoadHostsFile(e))?;
+    let file = File::open(&file_path).map_err(|e| QuinnetError::LoadHostsFile(e))?;
     for line in BufReader::new(file).lines() {
         let entry = parse_known_host_line(line?)?;
         store.insert(entry.0, entry.1);

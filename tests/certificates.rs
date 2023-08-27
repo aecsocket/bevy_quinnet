@@ -1,4 +1,4 @@
-use std::{fs, path::Path, thread::sleep, time::Duration, sync::Arc};
+use std::{fs, path::Path, sync::Arc, thread::sleep, time::Duration};
 
 use bevy::{
     app::ScheduleRunnerPlugin,
@@ -8,7 +8,7 @@ use bevy_quinnet::{
     client::{
         self,
         certificate::{CertVerificationStatus, CertificateVerificationMode},
-        Client, QuinnetClientPlugin, DEFAULT_KNOWN_HOSTS_FILE
+        Client, QuinnetClientPlugin, DEFAULT_KNOWN_HOSTS_FILE,
     },
     server::{
         certificate::CertificateRetrievalMode, QuinnetServerPlugin, Server, ServerConfiguration,

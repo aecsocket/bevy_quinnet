@@ -4,12 +4,12 @@ use std::{
     sync::Arc,
 };
 
-use bevy::prelude::{error, info, Event, Deref, DerefMut};
+use bevy::prelude::{error, info, Deref, DerefMut, Event};
 use bytes::Bytes;
 use quinn::{ClientConfig, Endpoint};
 use quinn_proto::{ConnectionStats, TransportConfig};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tokio::sync::{
     broadcast,
     mpsc::{
@@ -35,7 +35,21 @@ use super::{
     ClientAsyncMessage,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Deref, DerefMut, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    Deref,
+    DerefMut,
+    Serialize,
+    Deserialize,
+)]
 pub struct ConnectionId(pub u64);
 
 impl std::fmt::Display for ConnectionId {
@@ -543,8 +557,14 @@ pub(crate) async fn connection_task(
                     .send(ClientAsyncMessage::ConnectionClosed(conn_err))
                     .await
                 {
-                    if let Err(e) = error_send.send(QuinnetError::SignalConnectionLostToClient).await {
-                        error!("Could not send signal connection lost to client error: {}", e);
+                    if let Err(e) = error_send
+                        .send(QuinnetError::SignalConnectionLostToClient)
+                        .await
+                    {
+                        error!(
+                            "Could not send signal connection lost to client error: {}",
+                            e
+                        );
                     }
                 }
             }

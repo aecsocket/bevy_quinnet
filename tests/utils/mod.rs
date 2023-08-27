@@ -1,7 +1,8 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
+    sync::Arc,
     thread::sleep,
-    time::Duration, sync::Arc,
+    time::Duration,
 };
 
 use bevy::{

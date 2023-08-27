@@ -1,7 +1,8 @@
 use std::{
     collections::HashMap,
+    sync::Arc,
     thread::{self, sleep},
-    time::Duration, sync::Arc,
+    time::Duration,
 };
 
 use bevy::{

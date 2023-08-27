@@ -4,18 +4,32 @@ use crate::client::connection::ConnectionId;
 use bevy::prelude::{Deref, DerefMut, Resource};
 use quinn_proto::{ConnectError, ConnectionError};
 use rcgen::RcgenError;
+use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
-use serde::{Serialize, Deserialize};
 
 use self::channel::ChannelId;
 
-pub use quinn_proto::TransportConfig;
+pub use quinn_proto::{congestion, IdleTimeout, MtuDiscoveryConfig, TransportConfig, VarInt};
 
 pub const DEFAULT_MESSAGE_QUEUE_SIZE: usize = 150;
 pub const DEFAULT_KILL_MESSAGE_QUEUE_SIZE: usize = 10;
 pub const DEFAULT_KEEP_ALIVE_INTERVAL_S: u64 = 4;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Deref, DerefMut, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    Deref,
+    DerefMut,
+    Serialize,
+    Deserialize,
+)]
 pub struct ClientId(pub u64);
 
 impl std::fmt::Display for ClientId {
