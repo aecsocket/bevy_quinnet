@@ -6,17 +6,17 @@ use std::{
 
 use bevy::prelude::{error, info, Deref, DerefMut, Event};
 use bytes::Bytes;
-use quinn::{ClientConfig, Endpoint};
+use quinn::{ClientConfig, Endpoint, Connecting};
 use quinn_proto::{ConnectionStats, TransportConfig};
 
 use serde::{Deserialize, Serialize};
-use tokio::sync::{
+use tokio::{sync::{
     broadcast,
     mpsc::{
         self,
         error::{TryRecvError, TrySendError},
     },
-};
+}, runtime};
 
 use crate::shared::{
     channel::{
@@ -503,7 +503,8 @@ impl Connection {
     }
 }
 
-pub(crate) async fn connection_task(
+pub(crate) fn setup_connection_task(
+    runtime: &mut runtime::Handle,
     connection_id: ConnectionId,
     config: ConnectionConfiguration,
     transport: Arc<TransportConfig>,
@@ -529,9 +530,39 @@ pub(crate) async fn connection_task(
 
     let connection = endpoint
         .connect(config.server_addr, &config.server_hostname)
-        .map_err(|e| QuinnetError::ConnectConfigure(e))?
-        .await
-        .map_err(|e| QuinnetError::Connect(e))?;
+        .map_err(|e| QuinnetError::ConnectConfigure(e))?;
+
+    runtime.spawn(async move {
+        if let Err(e) = connection_task(
+            connection_id,
+            to_sync_client_send,
+            to_channels_recv,
+            from_channels_send,
+            close_recv,
+            bytes_from_server_send,
+            error_send.clone(),
+            connection,
+        ).await {
+            if let Err(e) = error_send.send(e).await {
+                error!("Could not send connection error: {}", e);
+            }
+        }
+    });
+
+    Ok(())
+}
+
+async fn connection_task(
+    connection_id: ConnectionId,
+    to_sync_client_send: mpsc::Sender<ClientAsyncMessage>,
+    to_channels_recv: mpsc::Receiver<ChannelSyncMessage>,
+    from_channels_send: mpsc::Sender<ChannelAsyncMessage>,
+    close_recv: broadcast::Receiver<()>,
+    bytes_from_server_send: mpsc::Sender<Bytes>,
+    error_send: mpsc::Sender<QuinnetError>,
+    connection: Connecting,
+) -> Result<(), QuinnetError> {
+    let connection = connection.await.map_err(|e| QuinnetError::Connect(e))?;
 
     info!(
         "Connection {} connected to {}",

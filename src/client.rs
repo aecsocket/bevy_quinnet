@@ -30,7 +30,7 @@ use self::{
         CertVerificationStatus, CertVerifierAction, CertificateVerificationMode,
     },
     connection::{
-        connection_task, Connection, ConnectionConfiguration, ConnectionEvent, ConnectionId,
+        setup_connection_task, Connection, ConnectionConfiguration, ConnectionEvent, ConnectionId,
         ConnectionLostEvent, ConnectionState,
     },
 };
@@ -185,28 +185,19 @@ impl Client {
         }
 
         // Async connection
-        self.runtime.spawn(async move {
-            if let Err(e) = connection_task(
-                connection_id,
-                config,
-                transport,
-                cert_mode,
-                to_sync_client_send,
-                to_channels_recv,
-                from_channels_send,
-                close_recv,
-                bytes_from_server_send,
-                error_send.clone(),
-            )
-            .await
-            {
-                if let Err(e) = error_send.send(e).await {
-                    error!("Could not send setup error for connection: {}", e);
-                }
-            }
-        });
-
-        Ok((connection_id, ordered_reliable_id))
+        setup_connection_task(
+            &mut self.runtime,
+            connection_id,
+            config,
+            transport,
+            cert_mode,
+            to_sync_client_send,
+            to_channels_recv,
+            from_channels_send,
+            close_recv,
+            bytes_from_server_send,
+            error_send.clone(),
+        ).map(|_| (connection_id, ordered_reliable_id))
     }
 
     /// Set the default connection
