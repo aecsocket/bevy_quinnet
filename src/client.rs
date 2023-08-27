@@ -9,7 +9,6 @@ use std::{
 use bevy::prelude::*;
 use bytes::Bytes;
 use quinn::ConnectionError;
-use quinn_proto::TransportConfig;
 use tokio::{
     runtime::{self},
     sync::{
@@ -41,6 +40,8 @@ pub mod connection;
 
 pub const DEFAULT_INTERNAL_MESSAGE_CHANNEL_SIZE: usize = 100;
 pub const DEFAULT_KNOWN_HOSTS_FILE: &str = "quinnet/known_hosts";
+
+pub use quinn_proto::TransportConfig;
 
 #[derive(Debug)]
 pub(crate) enum ClientAsyncMessage {

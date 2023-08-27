@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use bevy::{
     audio::Volume,
@@ -16,7 +16,7 @@ use bevy::{
 };
 use bevy_quinnet::{
     client::{
-        certificate::CertificateVerificationMode, connection::ConnectionConfiguration, Client,
+        certificate::CertificateVerificationMode, connection::ConnectionConfiguration, Client, TransportConfig,
     },
     shared::ClientId,
 };
@@ -100,6 +100,7 @@ pub(crate) fn start_connection(mut client: ResMut<Client>) {
                 LOCAL_BIND_IP,
                 0,
             ),
+            Arc::new(TransportConfig::default()),
             CertificateVerificationMode::SkipVerification,
         )
         .unwrap();

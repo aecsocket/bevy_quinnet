@@ -1,7 +1,7 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
     thread::sleep,
-    time::Duration,
+    time::Duration, sync::Arc,
 };
 
 use bevy::{
@@ -17,7 +17,7 @@ use bevy_quinnet::{
             CertificateVerificationMode,
         },
         connection::ConnectionConfiguration,
-        Client, QuinnetClientPlugin,
+        Client, QuinnetClientPlugin, TransportConfig,
     },
     server::{
         self, certificate::CertificateRetrievalMode, QuinnetServerPlugin, Server,
@@ -97,6 +97,7 @@ pub fn start_simple_connection(mut client: ResMut<Client>, port: Res<Port>) {
     client
         .open_connection(
             default_client_configuration(port.0),
+            Arc::new(TransportConfig::default()),
             CertificateVerificationMode::SkipVerification,
         )
         .unwrap();

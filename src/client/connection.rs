@@ -9,7 +9,7 @@ use bytes::Bytes;
 use quinn::{ClientConfig, Endpoint};
 use quinn_proto::{ConnectionStats, TransportConfig};
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use tokio::sync::{
     broadcast,
     mpsc::{
@@ -35,7 +35,7 @@ use super::{
     ClientAsyncMessage,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deref, DerefMut)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Deref, DerefMut, Serialize, Deserialize)]
 pub struct ConnectionId(pub u64);
 
 impl std::fmt::Display for ConnectionId {

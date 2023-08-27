@@ -1,4 +1,4 @@
-use std::{fs, path::Path, thread::sleep, time::Duration};
+use std::{fs, path::Path, thread::sleep, time::Duration, sync::Arc};
 
 use bevy::{
     app::ScheduleRunnerPlugin,
@@ -8,7 +8,7 @@ use bevy_quinnet::{
     client::{
         self,
         certificate::{CertVerificationStatus, CertificateVerificationMode},
-        Client, QuinnetClientPlugin, DEFAULT_KNOWN_HOSTS_FILE,
+        Client, QuinnetClientPlugin, DEFAULT_KNOWN_HOSTS_FILE, TransportConfig
     },
     server::{
         certificate::CertificateRetrievalMode, QuinnetServerPlugin, Server, ServerConfiguration,
@@ -99,6 +99,7 @@ fn trust_on_first_use() {
         client
             .open_connection(
                 default_client_configuration(port),
+                Arc::new(TransportConfig::default()),
                 CertificateVerificationMode::TrustOnFirstUse(
                     client::certificate::TrustOnFirstUseConfig {
                         ..Default::default()
@@ -156,6 +157,7 @@ fn trust_on_first_use() {
         client
             .open_connection(
                 default_client_configuration(port),
+                Arc::new(TransportConfig::default()),
                 CertificateVerificationMode::TrustOnFirstUse(
                     client::certificate::TrustOnFirstUseConfig {
                         ..Default::default()
@@ -220,6 +222,7 @@ fn trust_on_first_use() {
         client
             .open_connection(
                 default_client_configuration(port),
+                Arc::new(TransportConfig::default()),
                 CertificateVerificationMode::TrustOnFirstUse(
                     client::certificate::TrustOnFirstUseConfig {
                         ..Default::default()

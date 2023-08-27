@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     thread::{self, sleep},
-    time::Duration,
+    time::Duration, sync::Arc,
 };
 
 use bevy::{
@@ -16,7 +16,7 @@ use bevy_quinnet::{
     client::{
         certificate::CertificateVerificationMode,
         connection::{ConnectionConfiguration, ConnectionEvent},
-        Client, QuinnetClientPlugin,
+        Client, QuinnetClientPlugin, TransportConfig,
     },
     shared::ClientId,
 };
@@ -121,6 +121,7 @@ fn start_connection(mut client: ResMut<Client>) {
     client
         .open_connection(
             ConnectionConfiguration::from_strings("127.0.0.1:6000", "0.0.0.0:0").unwrap(),
+            Arc::new(TransportConfig::default()),
             CertificateVerificationMode::SkipVerification,
         )
         .unwrap();
