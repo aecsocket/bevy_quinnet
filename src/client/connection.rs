@@ -7,7 +7,7 @@ use std::{
 use bevy::prelude::{error, info, Event, Deref, DerefMut};
 use bytes::Bytes;
 use quinn::{ClientConfig, Endpoint};
-use quinn_proto::ConnectionStats;
+use quinn_proto::{ConnectionStats, TransportConfig};
 
 use serde::Deserialize;
 use tokio::sync::{
@@ -492,6 +492,7 @@ impl Connection {
 pub(crate) async fn connection_task(
     connection_id: ConnectionId,
     config: ConnectionConfiguration,
+    transport: Arc<TransportConfig>,
     cert_mode: CertificateVerificationMode,
     to_sync_client_send: mpsc::Sender<ClientAsyncMessage>,
     to_channels_recv: mpsc::Receiver<ChannelSyncMessage>,
@@ -505,7 +506,7 @@ pub(crate) async fn connection_task(
         connection_id, config.server_addr
     );
 
-    let client_cfg = configure_client(cert_mode, to_sync_client_send.clone())
+    let client_cfg = configure_client(cert_mode, to_sync_client_send.clone(), transport)
         .map_err(|e| QuinnetError::ClientConfigure(Box::new(e)))?;
 
     let mut endpoint =
@@ -593,18 +594,19 @@ pub(crate) async fn connection_task(
 fn configure_client(
     cert_mode: CertificateVerificationMode,
     to_sync_client: mpsc::Sender<ClientAsyncMessage>,
+    transport: Arc<TransportConfig>,
 ) -> Result<ClientConfig, QuinnetError> {
-    match cert_mode {
+    let mut config = match cert_mode {
         CertificateVerificationMode::SkipVerification => {
             let crypto = rustls::ClientConfig::builder()
                 .with_safe_defaults()
                 .with_custom_certificate_verifier(SkipServerVerification::new())
                 .with_no_client_auth();
 
-            Ok(ClientConfig::new(Arc::new(crypto)))
+            ClientConfig::new(Arc::new(crypto))
         }
         CertificateVerificationMode::SignedByCertificateAuthority => {
-            Ok(ClientConfig::with_native_roots())
+            ClientConfig::with_native_roots()
         }
         CertificateVerificationMode::TrustOnFirstUse(config) => {
             let (store, store_file) = load_known_hosts_store_from_config(config.known_hosts)?;
@@ -617,7 +619,9 @@ fn configure_client(
                     store_file,
                 ))
                 .with_no_client_auth();
-            Ok(ClientConfig::new(Arc::new(crypto)))
+            ClientConfig::new(Arc::new(crypto))
         }
-    }
+    };
+    config.transport_config(transport);
+    Ok(config)
 }

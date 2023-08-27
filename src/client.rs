@@ -3,12 +3,13 @@ use std::{
         hash_map::{Iter, IterMut},
         HashMap,
     },
-    sync::Mutex,
+    sync::{Mutex, Arc},
 };
 
 use bevy::prelude::*;
 use bytes::Bytes;
 use quinn::ConnectionError;
+use quinn_proto::TransportConfig;
 use tokio::{
     runtime::{self},
     sync::{
@@ -146,6 +147,7 @@ impl Client {
     pub fn open_connection(
         &mut self,
         config: ConnectionConfiguration,
+        transport: Arc<TransportConfig>,
         cert_mode: CertificateVerificationMode,
     ) -> Result<(ConnectionId, ChannelId), QuinnetError> {
         let (bytes_from_server_send, bytes_from_server_recv) =
@@ -188,6 +190,7 @@ impl Client {
             if let Err(e) = connection_task(
                 connection_id,
                 config,
+                transport,
                 cert_mode,
                 to_sync_client_send,
                 to_channels_recv,
