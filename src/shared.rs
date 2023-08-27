@@ -64,8 +64,17 @@ pub enum QuinnetError {
     #[error("rustls protocol error")]
     RustlsError(#[from] rustls::Error),
 
+    #[error("invalid DNS name")]
+    InvalidDnsName(#[from] rustls::client::InvalidDnsNameError),
+    #[error("failed to decode base64 fingerprint")]
+    FingerprintDecode(base64::DecodeError),
+    #[error("failed to create hosts file")]
+    CreateHostsFile(io::Error),
+    #[error("failed to load hosts file")]
+    LoadHostsFile(io::Error),
+
     #[error("failed to configure client")]
-    ClientConfigure,
+    ClientConfigure(#[source] Box<QuinnetError>),
     #[error("failed to create endpoint")]
     EndpointCreation(#[source] io::Error),
     #[error("failed to configure connection")]

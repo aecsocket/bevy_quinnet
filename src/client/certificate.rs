@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    error::Error,
     fmt,
     fs::File,
     io::{BufRead, BufReader, Write},
@@ -350,7 +349,7 @@ impl rustls::client::ServerCertVerifier for TofuServerVerification {
     }
 }
 
-fn store_known_hosts_to_file(file: &String, store: &CertStore) -> Result<(), Box<dyn Error>> {
+fn store_known_hosts_to_file(file: &String, store: &CertStore) -> Result<(), QuinnetError> {
     let path = std::path::Path::new(file);
     if let Some(prefix) = path.parent() {
         std::fs::create_dir_all(prefix)?;
@@ -364,26 +363,29 @@ fn store_known_hosts_to_file(file: &String, store: &CertStore) -> Result<(), Box
 
 fn parse_known_host_line(
     line: String,
-) -> Result<(ServerName, CertificateFingerprint), Box<dyn Error>> {
+) -> Result<(ServerName, CertificateFingerprint), QuinnetError> {
     let mut parts = line.split_whitespace();
 
     let adr_str = parts.next().ok_or(QuinnetError::InvalidHostFile)?;
-    let serv_name = ServerName(RustlsServerName::try_from(adr_str)?);
+    let serv_name = ServerName(RustlsServerName::try_from(adr_str).map_err(|e| QuinnetError::InvalidDnsName(e))?);
 
     let fingerprint_b64 = parts.next().ok_or(QuinnetError::InvalidHostFile)?;
-    let fingerprint_bytes = base64::decode(&fingerprint_b64)?;
+    let fingerprint_bytes = base64::decode(&fingerprint_b64)    
+        .map_err(|e| QuinnetError::FingerprintDecode(e))?;
 
     match fingerprint_bytes.try_into() {
         Ok(buf) => Ok((serv_name, CertificateFingerprint::new(buf))),
-        Err(_) => Err(Box::new(QuinnetError::InvalidHostFile)),
+        Err(_) => Err(QuinnetError::InvalidHostFile),
     }
 }
 
 fn load_known_hosts_from_file(
     file_path: String,
-) -> Result<(CertStore, Option<String>), Box<dyn Error>> {
+) -> Result<(CertStore, Option<String>), QuinnetError> {
     let mut store = HashMap::new();
-    for line in BufReader::new(File::open(&file_path)?).lines() {
+    let file = File::open(&file_path)
+        .map_err(|e| QuinnetError::LoadHostsFile(e))?;
+    for line in BufReader::new(file).lines() {
         let entry = parse_known_host_line(line?)?;
         store.insert(entry.0, entry.1);
     }
@@ -392,7 +394,7 @@ fn load_known_hosts_from_file(
 
 pub(crate) fn load_known_hosts_store_from_config(
     known_host_config: KnownHosts,
-) -> Result<(CertStore, Option<String>), Box<dyn Error>> {
+) -> Result<(CertStore, Option<String>), QuinnetError> {
     match known_host_config {
         KnownHosts::Store(store) => Ok((store, None)),
         KnownHosts::HostsFile(file) => {

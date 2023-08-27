@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    error::Error,
     net::{AddrParseError, IpAddr, SocketAddr},
     sync::Arc,
 };
@@ -507,7 +506,7 @@ pub(crate) async fn connection_task(
     );
 
     let client_cfg = configure_client(cert_mode, to_sync_client_send.clone())
-        .map_err(|_| QuinnetError::ClientConfigure)?;
+        .map_err(|e| QuinnetError::ClientConfigure(Box::new(e)))?;
 
     let mut endpoint =
         Endpoint::client(config.local_bind_addr).map_err(|e| QuinnetError::EndpointCreation(e))?;
@@ -594,7 +593,7 @@ pub(crate) async fn connection_task(
 fn configure_client(
     cert_mode: CertificateVerificationMode,
     to_sync_client: mpsc::Sender<ClientAsyncMessage>,
-) -> Result<ClientConfig, Box<dyn Error>> {
+) -> Result<ClientConfig, QuinnetError> {
     match cert_mode {
         CertificateVerificationMode::SkipVerification => {
             let crypto = rustls::ClientConfig::builder()
