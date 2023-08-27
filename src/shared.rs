@@ -9,6 +9,8 @@ use serde::{Serialize, Deserialize};
 
 use self::channel::ChannelId;
 
+pub use quinn_proto::TransportConfig;
+
 pub const DEFAULT_MESSAGE_QUEUE_SIZE: usize = 150;
 pub const DEFAULT_KILL_MESSAGE_QUEUE_SIZE: usize = 10;
 pub const DEFAULT_KEEP_ALIVE_INTERVAL_S: u64 = 4;

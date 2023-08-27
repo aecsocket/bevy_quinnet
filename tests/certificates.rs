@@ -8,11 +8,12 @@ use bevy_quinnet::{
     client::{
         self,
         certificate::{CertVerificationStatus, CertificateVerificationMode},
-        Client, QuinnetClientPlugin, DEFAULT_KNOWN_HOSTS_FILE, TransportConfig
+        Client, QuinnetClientPlugin, DEFAULT_KNOWN_HOSTS_FILE
     },
     server::{
         certificate::CertificateRetrievalMode, QuinnetServerPlugin, Server, ServerConfiguration,
     },
+    shared::TransportConfig,
 };
 
 // https://github.com/rust-lang/rust/issues/46379

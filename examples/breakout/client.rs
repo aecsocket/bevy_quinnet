@@ -16,9 +16,9 @@ use bevy::{
 };
 use bevy_quinnet::{
     client::{
-        certificate::CertificateVerificationMode, connection::ConnectionConfiguration, Client, TransportConfig,
+        certificate::CertificateVerificationMode, connection::ConnectionConfiguration, Client,
     },
-    shared::ClientId,
+    shared::{ClientId, TransportConfig},
 };
 
 use crate::{

@@ -17,7 +17,7 @@ use bevy_quinnet::{
             CertificateVerificationMode,
         },
         connection::ConnectionConfiguration,
-        Client, QuinnetClientPlugin, TransportConfig,
+        Client, QuinnetClientPlugin,
     },
     server::{
         self, certificate::CertificateRetrievalMode, QuinnetServerPlugin, Server,
@@ -25,7 +25,7 @@ use bevy_quinnet::{
     },
     shared::{
         channel::{ChannelId, ChannelType},
-        ClientId,
+        ClientId, TransportConfig,
     },
 };
 use serde::{Deserialize, Serialize};

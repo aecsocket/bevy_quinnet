@@ -16,9 +16,9 @@ use bevy_quinnet::{
     client::{
         certificate::CertificateVerificationMode,
         connection::{ConnectionConfiguration, ConnectionEvent},
-        Client, QuinnetClientPlugin, TransportConfig,
+        Client, QuinnetClientPlugin,
     },
-    shared::ClientId,
+    shared::{ClientId, TransportConfig},
 };
 use rand::{distributions::Alphanumeric, Rng};
 use tokio::sync::mpsc;
